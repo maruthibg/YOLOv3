@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 from model.yolo_model import YOLO
 
-
 def process_image(img):
     """Resize, reduce and expand image.
 
@@ -52,8 +51,7 @@ def draw(image, boxes, scores, classes, all_classes):
         scores: ndarray, scores of objects.
         all_classes: all classes name.
     """
-    classes_present = []
-    scores_percent = []
+    
     for box, score, cl in zip(boxes, scores, classes):
         x, y, w, h = box
 
@@ -66,16 +64,19 @@ def draw(image, boxes, scores, classes, all_classes):
         cv2.putText(image, '{0} {1:.2f}'.format(all_classes[cl], score),
                     (top, left - 6),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (0, 0, 255), 1,
+                    1, (0, 0, 255), 4,
                     cv2.LINE_AA)
 
-        #print('class: {0}, score: {1:.2f}'.format(all_classes[cl], score))
-        #print('box coordinate x,y,w,h: {0}'.format(box))
-        classes_present.append(all_classes[cl])
-        scores_percent.append(score)
+        print('class: {0}, score: {1:.2f}'.format(all_classes[cl], score))
+        print('box coordinate x,y,w,h: {0}'.format(box))
         
+        class_found = all_classes[cl]
+        if class_found in objects_detected:
+            objects_detected[class_found] = objects_detected.get(class_found) + 1
+        else:
+            objects_detected[class_found] = 1
 
-    return {'class':classes_present, 'score': scores_percent}
+    print()
 
 
 def detect_image(image, yolo, all_classes):
@@ -98,9 +99,9 @@ def detect_image(image, yolo, all_classes):
     print('time: {0:.2f}s'.format(end - start))
 
     if boxes is not None:
-        score = draw(image, boxes, scores, classes, all_classes)
+        draw(image, boxes, scores, classes, all_classes)
 
-    return score
+    return image
 
 
 def detect_video(video, yolo, all_classes):
@@ -113,16 +114,16 @@ def detect_video(video, yolo, all_classes):
     """
     video_path = os.path.join("videos", "test", video)
     camera = cv2.VideoCapture(video_path)
-    #cv2.namedWindow("detection", cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow("detection", cv2.WINDOW_AUTOSIZE)
 
-    ## Prepare for saving the detected video
-    #sz = (int(camera.get(cv2.CAP_PROP_FRAME_WIDTH)),
-    #    int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    #fourcc = cv2.VideoWriter_fourcc(*'mpeg')
+    # Prepare for saving the detected video
+    sz = (int(camera.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    fourcc = cv2.VideoWriter_fourcc(*'mpeg')
 
     
-    #vout = cv2.VideoWriter()
-    #vout.open(os.path.join("videos", "res", video), fourcc, 20, sz, True)
+    vout = cv2.VideoWriter()
+    vout.open(os.path.join("videos", "res", video), fourcc, 20, sz, True)
 
     while True:
         res, frame = camera.read()
@@ -130,27 +131,31 @@ def detect_video(video, yolo, all_classes):
         if not res:
             break
 
-        result = detect_image(frame, yolo, all_classes)
-        print(result)
-        #cv2.imshow("detection", image)
+        image = detect_image(frame, yolo, all_classes)
+        cv2.imshow("detection", image)
 
         # Save the video frame by frame
-        #vout.write(image)
+        vout.write(image)
 
-        #if cv2.waitKey(110) & 0xff == 27:
-        #        break
+        if cv2.waitKey(110) & 0xff == 27:
+            break
 
-    #vout.release()
+    vout.release()
     camera.release()
     
 
 
 if __name__ == '__main__':
+    def write(values):
+        values = [','.join([k, str(v)])+'\n' for k,v in values.items()]
+        with open('output.csv', 'w') as f:
+            f.writelines(values)
+
+    objects_detected = {}
     yolo = YOLO(0.6, 0.5)
     file = 'data/coco_classes.txt'
     all_classes = get_classes(file)
 
-    """
     # detect images in test floder.
     for (root, dirs, files) in os.walk('images/test'):
         if files:
@@ -160,7 +165,12 @@ if __name__ == '__main__':
                 image = cv2.imread(path)
                 image = detect_image(image, yolo, all_classes)
                 cv2.imwrite('images/res/' + f, image)
-    """
+                print(objects_detected)
+                write(objects_detected)
+
     # detect videos one at a time in videos/test folder    
+    '''
     video = 'library1.mp4'
     detect_video(video, yolo, all_classes)
+    '''
+    
