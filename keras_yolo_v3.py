@@ -155,7 +155,7 @@ if __name__ == '__main__':
     def write(values):
         print(values)
         values = [','.join([k, str(v)])+'\n' for k,v in values.items()]
-        with open('output.csv', 'w') as f:
+        with open('filename.csv', 'w') as f:
             f.writelines(values)
 
     objects_detected = {}
@@ -190,4 +190,4 @@ if __name__ == '__main__':
     video = 'library1.mp4'
     detect_video(video, yolo, all_classes)
     '''
-    
+  
