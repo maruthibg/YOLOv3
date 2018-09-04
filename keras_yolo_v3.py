@@ -5,6 +5,12 @@ import time
 import cv2
 import numpy as np
 from model.yolo_model import YOLO
+import argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument('-i', '--image', required=True,
+                help = 'path to input image')
+args = ap.parse_args()
 
 def process_image(img):
     """Resize, reduce and expand image.
@@ -147,6 +153,7 @@ def detect_video(video, yolo, all_classes):
 
 if __name__ == '__main__':
     def write(values):
+        print(values)
         values = [','.join([k, str(v)])+'\n' for k,v in values.items()]
         with open('output.csv', 'w') as f:
             f.writelines(values)
@@ -155,7 +162,16 @@ if __name__ == '__main__':
     yolo = YOLO(0.6, 0.5)
     file = 'data/coco_classes.txt'
     all_classes = get_classes(file)
+    
+    path = args.image
+    print(path)
+    image = cv2.imread(args.image)
 
+    image = detect_image(image, yolo, all_classes)
+    #cv2.imwrite('images/res/' + f, image)
+    write(objects_detected)
+
+    """
     # detect images in test floder.
     for (root, dirs, files) in os.walk('images/test'):
         if files:
@@ -167,6 +183,7 @@ if __name__ == '__main__':
                 cv2.imwrite('images/res/' + f, image)
                 print(objects_detected)
                 write(objects_detected)
+    """
 
     # detect videos one at a time in videos/test folder    
     '''
